@@ -137,7 +137,6 @@ class AttentionPool2d(nn.Module):
             need_weights=False,
             key_padding_mask=mask,
         )
-
         if return_cls:
             return x[0]
         else:
@@ -212,7 +211,8 @@ class ModifiedResNet(nn.Module):
         b, c, gh, gw = x.shape
         x = self.attnpool(x, mask, return_cls)
         if not return_cls:
-            return x[1:].permute(1, 0, 2).reshape(b, gh, gw, c)  # N,L,C
+            # (HW+1)NC -> NHWC'
+            return x[1:].permute(1, 0, 2).reshape(b, gh, gw, self.output_dim) 
         return x
 
 

@@ -99,44 +99,15 @@ class ClipOnlyPerPixelModel(SemanticSegmentor):
         images = [x["image"].to(self.device) for x in batched_inputs]
         images = [(x - self.pixel_mean) / self.pixel_std for x in images]
         images = ImageList.from_tensors(images)
-
-        # features = self.backbone(images.tensor)
-
-        # if "sem_seg" in batched_inputs[0]:
-        #     targets = [x["sem_seg"].to(self.device) for x in batched_inputs]
-        #     targets = ImageList.from_tensors(
-        #         targets, self.backbone.size_divisibility, self.sem_seg_head.ignore_value
-        #     ).tensor
-        # else:
-        #     targets = None
         class_names = [
             c.strip() for c in MetadataCatalog.get(dataset_name).stuff_classes
         ]
-        # text_features = self.clip_adapter.get_text_features(class_names)
-        # targets = {
-        #     "sem_seg_target": targets,
-        #     "text_features": text_features,
-        #     "cosine_sim_func": self.clip_adapter.get_sim_logits,
-        # }
-        # results, losses = self.sem_seg_head(features, targets)
-
-        # if self.training:
-        #     return losses
-
         processed_results = []
         for input_per_image, image_size in zip(
             batched_inputs, images.image_sizes
         ):
             height = input_per_image.get("height", image_size[0])
             width = input_per_image.get("width", image_size[1])
-            # r = sem_seg_postprocess(result, image_size, height, width).permute(1, 2, 0)
-            # r = r / r.norm(dim=-1, keepdim=True)
-            # r = (
-            #     self.clip_adapter.get_sim_logits(text_features, r)
-            #     .permute(2, 0, 1)
-            #     .softmax(dim=0)
-            # )  # Cls,H,W
-            # if self.clip_ensemble_weight <= 1.0:
             dataset_name = input_per_image["meta"]["dataset_name"]
             class_names = self.get_class_name_list(dataset_name)
             image = input_per_image["image"]  # C,H,W
@@ -145,12 +116,11 @@ class ClipOnlyPerPixelModel(SemanticSegmentor):
                 .softmax(dim=-1)
                 .permute(0, 3, 1, 2)
                 .squeeze(0)
-            )  # b,cls,gh,gw
+            )  # cls,gh,gw
             clip_act_map = sem_seg_postprocess(
                 clip_act_map, image_size, height, width
             )
-            r = clip_act_map
-            processed_results.append({"sem_seg": r})
+            processed_results.append({"sem_seg": clip_act_map})
         return processed_results
 
     def get_class_name_list(self, dataset_name):

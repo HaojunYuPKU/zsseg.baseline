@@ -35,8 +35,10 @@ NOVEL_CLASS_NAMES = [c for i, c in enumerate(CLASS_NAMES) if i in [15, 16, 17, 1
 
 
 def _get_voc_meta(cat_list):
+    stuff_dataset_id_to_contiguous_id = {i: i for i, c in enumerate(cat_list)}
     ret = {
         "stuff_classes": cat_list,
+        "stuff_dataset_id_to_contiguous_id": stuff_dataset_id_to_contiguous_id,
     }
     return ret
 

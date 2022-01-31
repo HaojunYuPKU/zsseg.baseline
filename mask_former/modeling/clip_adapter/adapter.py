@@ -212,5 +212,5 @@ class PerPixelClipAdapter(ClipAdapter):
     ):
         image = self._preprocess_image(image, **kwargs)
         text_feature = self.get_text_features(text)  # k,feat_dim
-        image_features = self.get_image_features(image)
+        image_features = self.get_image_features(image, per_pixel=True)
         return self.get_sim_logits(text_feature, image_features)
