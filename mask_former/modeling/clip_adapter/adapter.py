@@ -219,7 +219,6 @@ class PerPixelClipAdapter(ClipAdapter):
         self, image: torch.Tensor, text: List[str], per_pixel: bool = True, temperature: int = 100, **kwargs
     ):
         image = self._preprocess_image(image, **kwargs)
-        with torch.no_grad():
-            text_feature = self.get_text_features(text)  # k,feat_dim
+        text_feature = self.get_text_features(text)  # k,feat_dim
         image_features = self.get_image_features(image, per_pixel=per_pixel)
         return self.get_sim_logits(text_feature, image_features, temperature)
