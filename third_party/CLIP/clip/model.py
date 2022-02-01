@@ -106,6 +106,7 @@ class AttentionPool2d(nn.Module):
                     .view(1, -1, self.grid_size, self.grid_size),
                     size=(gh, gw),
                     mode="bicubic",
+                    align_corners=False,
                 )
                 .reshape(-1, gh * gw)
                 .permute(1, 0)

@@ -8,9 +8,9 @@ from .text_prompt import PromptExtractor
 
 
 class ClipAdapter(nn.Module):
-    def __init__(self, clip_model_name: str, prompt_learner: PromptExtractor):
+    def __init__(self, clip_model_name: str, prompt_learner: PromptExtractor, frozen: bool = True):
         super().__init__()
-        self.clip_model = build_clip_model(clip_model_name)
+        self.clip_model = build_clip_model(clip_model_name, frozen)
         self.prompt_learner = prompt_learner
         self.prompt_learner.init_buffer(self.clip_model)
         self.text_feature_buffer = {}
@@ -58,7 +58,8 @@ class ClipAdapter(nn.Module):
 
     def get_image_features(self, image: torch.Tensor):
         image_features = self.clip_model.visual(image)
-        image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+        image_features = image_features / \
+            image_features.norm(dim=-1, keepdim=True)
         return image_features
 
     def get_sim_logits(
@@ -108,10 +109,12 @@ class MaskFormerClipAdapter(ClipAdapter):
         self.region_resized = region_resized
 
         self.register_buffer(
-            "pixel_mean", torch.Tensor(CLIP.PIXEL_MEAN).reshape(1, 3, 1, 1) * 255.0
+            "pixel_mean", torch.Tensor(
+                CLIP.PIXEL_MEAN).reshape(1, 3, 1, 1) * 255.0
         )
         self.register_buffer(
-            "pixel_std", torch.Tensor(CLIP.PIXEL_STD).reshape(1, 3, 1, 1) * 255.0
+            "pixel_std", torch.Tensor(
+                CLIP.PIXEL_STD).reshape(1, 3, 1, 1) * 255.0
         )
 
     def forward(
@@ -121,7 +124,8 @@ class MaskFormerClipAdapter(ClipAdapter):
         mask: torch.Tensor,
         normalize: bool = True,
     ):
-        image, valid_flag = self._preprocess_image(image, mask, normalize=normalize)
+        image, valid_flag = self._preprocess_image(
+            image, mask, normalize=normalize)
         if image is None:
             return None, valid_flag
         if isinstance(image, list):
@@ -188,10 +192,12 @@ class PerPixelClipAdapter(ClipAdapter):
     def __init__(self, *args, **kwargs):
         super(PerPixelClipAdapter, self).__init__(*args, **kwargs)
         self.register_buffer(
-            "pixel_mean", torch.Tensor(CLIP.PIXEL_MEAN).reshape(1, 3, 1, 1) * 255.0
+            "pixel_mean", torch.Tensor(
+                CLIP.PIXEL_MEAN).reshape(1, 3, 1, 1) * 255.0
         )
         self.register_buffer(
-            "pixel_std", torch.Tensor(CLIP.PIXEL_STD).reshape(1, 3, 1, 1) * 255.0
+            "pixel_std", torch.Tensor(
+                CLIP.PIXEL_STD).reshape(1, 3, 1, 1) * 255.0
         )
 
     def _preprocess_image(self, image: torch.Tensor):
@@ -199,18 +205,21 @@ class PerPixelClipAdapter(ClipAdapter):
 
     def get_image_features(self, image: torch.Tensor, per_pixel: bool = False):
         if per_pixel:
-            image_features = self.clip_model.visual(image, return_cls=False)  # b,h,w,c
+            image_features = self.clip_model.visual(
+                image, return_cls=False)  # b,h,w,c
         else:
             image_features = self.clip_model.visual(image)[:, None, None, :].expand(
                 image.shape[0], 2, 2, -1
             )  # b,c
-        image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+        image_features = image_features / \
+            image_features.norm(dim=-1, keepdim=True)
         return image_features
 
     def forward(
-        self, image: torch.Tensor, text: List[str], per_pixel: bool = True, **kwargs
+        self, image: torch.Tensor, text: List[str], per_pixel: bool = True, temperature: int = 100, **kwargs
     ):
         image = self._preprocess_image(image, **kwargs)
-        text_feature = self.get_text_features(text)  # k,feat_dim
-        image_features = self.get_image_features(image, per_pixel=True)
-        return self.get_sim_logits(text_feature, image_features)
+        with torch.no_grad():
+            text_feature = self.get_text_features(text)  # k,feat_dim
+        image_features = self.get_image_features(image, per_pixel=per_pixel)
+        return self.get_sim_logits(text_feature, image_features, temperature)
