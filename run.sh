@@ -5,8 +5,8 @@ export CUDA_VISIBLE_DEVICES="0,1,2,3"
 wandb off
 
 python train_net.py --num-gpus 4 --resume \
---config-file configs/coco-stuff-164k-156/zero_shot_clip_fpn_perpixel_learnable_prompt.yaml \
-OUTPUT_DIR output/clip_fpn_perpixel_learnable_prompt_coco \
+--config-file configs/coco-stuff-164k-156/zero_shot_clip_fpn_perpixel_no_prompt.yaml \
+OUTPUT_DIR output/clip_fpn_perpixel_coco \
 SOLVER.IMS_PER_BATCH 16 \
 SOLVER.BASE_LR 0.00005 \
 # DATASETS.TEST "('ade20k_full_sem_seg_val',)" \
