@@ -53,6 +53,7 @@ search:
       values:
       # - configs/coco-stuff-164k-156/zero_shot_clip_only_perpixel_no_prompt.yaml
       # - configs/coco-stuff-164k-156/zero_shot_clip_fpn_perpixel_no_prompt.yaml
+      # - configs/coco-stuff-164k-156/zero_shot_clip_fpn_perpixel_learnable_prompt.yaml
       - configs/coco-stuff-164k-156/zero_shot_perpixel_R101c_no_prompt.yaml
  
   type: grid
