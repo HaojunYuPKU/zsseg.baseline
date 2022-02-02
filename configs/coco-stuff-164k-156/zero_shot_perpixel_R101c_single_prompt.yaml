@@ -31,8 +31,8 @@ DATASETS:
   TEST: ("coco_2017_test_stuff_sem_seg",) 
   #"coco_2017_test_stuff_sem_seg", "voc_sem_seg_test", "ade20k_sem_seg_val", "ade20k_panoptic_val", "ade20k_full_sem_seg_val"
 SOLVER:
-  IMS_PER_BATCH: 4
-  BASE_LR: 0.00005
+  IMS_PER_BATCH: 32
+  BASE_LR: 0.0001
   MAX_ITER: 60000
   WARMUP_FACTOR: 1.0
   WARMUP_ITERS: 0

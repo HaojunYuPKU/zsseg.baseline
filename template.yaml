@@ -1,0 +1,58 @@
+target:
+  service: amlk8s
+  name: itpscusv100cl
+  vc: resrchvc
+
+environment:
+  image: usscv100cr.azurecr.io/v-mengdexu/detectron2:lastest #docker.io/mendelxu/mmdet:nvcr_21_05_detectron2 #gcrmembers.azurecr.io/v-mengdexu/detectron2:lastest #
+  username: usscv100cr #mendelxu #v-mengdexu
+  registry: usscv100cr.azurecr.io #docker.io #gcrmembers.azurecr.io #docker.io
+  setup:
+    - bash setup.sh
+storage:
+  data:
+    storage_account_name: zeliuscus
+    container_name: aml
+    mount_dir: /zeliuscus
+  output:
+    storage_account_name: zeliuscus
+    container_name: v-mdxu
+    mount_dir: /mnt/output
+
+code:
+  local_dir: $CONFIG_DIR/scripts
+
+search:
+  job_template:
+    command:
+      - export $$(grep -v '^#' .env | xargs)
+      - set -x
+      - cd code
+      - python train_net.py --resume --config-file {CONFIG} --num-gpus 8 OUTPUT_DIR ./output/zero_shot_perpixel_R101c_single_prompt_{ROUND} WANDB.NAME zero_shot_perpixel_R101c_single_prompt_60k SOLVER.MAX_ITER {MAX_ITER}
+    
+    name: search_{experiment_name:s}
+    sku: G8@southcentralus
+    sku_count: 1
+    submit_args:
+      container_args:
+        shm_size: 720G
+      env:
+        # NCCL_IB_DISABLE: 0
+        # NCCL_SOCKET_IFNAME: ib0,ib1
+        MKL_THREADING_LAYER: GNU
+
+  max_trials: 200
+  params:
+    - name: MAX_ITER
+      spec: discrete
+      values: [60000,]
+    - name: ROUND
+      spec: discrete
+      values: [0,]
+    - name: CONFIG
+      spec: discrete
+      values:
+      - configs/coco-stuff-164k-156/zero_shot_perpixel_R101c_single_prompt.yaml
+      # - configs/coco-stuff-164k-156/zero_shot_clip_only_perpixel.yaml
+ 
+  type: grid
