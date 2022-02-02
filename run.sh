@@ -4,7 +4,7 @@ export CUDA_VISIBLE_DEVICES="0,1,2,3"
 
 wandb off
 
-python train_net.py --num-gpus 4 \
+python train_net.py --num-gpus 4 --resume \
 --config-file configs/coco-stuff-164k-156/zero_shot_clip_fpn_perpixel.yaml \
 OUTPUT_DIR output/clip_fpn_perpixel_coco \
 SOLVER.IMS_PER_BATCH 16 \
