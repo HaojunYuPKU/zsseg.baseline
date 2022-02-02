@@ -4,9 +4,9 @@ target:
   vc: resrchvc
 
 environment:
-  image: usscv100cr.azurecr.io/v-mengdexu/detectron2:lastest #docker.io/mendelxu/mmdet:nvcr_21_05_detectron2 #gcrmembers.azurecr.io/v-mengdexu/detectron2:lastest #
-  username: usscv100cr #mendelxu #v-mengdexu
-  registry: usscv100cr.azurecr.io #docker.io #gcrmembers.azurecr.io #docker.io
+  image: usscv100cr.azurecr.io/v-mengdexu/detectron2:lastest
+  username: usscv100cr
+  registry: usscv100cr.azurecr.io
   setup:
     - bash setup.sh
 storage:
@@ -28,8 +28,8 @@ search:
       - export $$(grep -v '^#' .env | xargs)
       - set -x
       - cd code
-      - export CUDA_LAUNCH_BLOCKING=1
-      - python train_net.py --resume --config-file {CONFIG} --num-gpus 8 OUTPUT_DIR ./output/zero_shot_perpixel_R101c_single_prompt_{ROUND} WANDB.NAME zero_shot_perpixel_R101c_single_prompt_60k SOLVER.MAX_ITER {MAX_ITER}
+      - export NAME=`python tools/parse_name.py {CONFIG}`
+      - python train_net.py --resume --config-file {CONFIG} --num-gpus 8 OUTPUT_DIR ./output/$${NAME}_{MAX_ITER}-{ROUND} WANDB.NAME $${NAME}_{MAX_ITER} SOLVER.MAX_ITER {MAX_ITER}
     
     name: search_{experiment_name:s}
     sku: G8@southcentralus
@@ -38,8 +38,6 @@ search:
       container_args:
         shm_size: 720G
       env:
-        # NCCL_IB_DISABLE: 0
-        # NCCL_SOCKET_IFNAME: ib0,ib1
         MKL_THREADING_LAYER: GNU
 
   max_trials: 200
@@ -53,7 +51,8 @@ search:
     - name: CONFIG
       spec: discrete
       values:
-      # - configs/coco-stuff-164k-156/zero_shot_perpixel_R101c_single_prompt.yaml
-      - configs/coco-stuff-164k-156/zero_shot_clip_only_perpixel.yaml
+      # - configs/coco-stuff-164k-156/zero_shot_clip_only_perpixel_no_prompt.yaml
+      # - configs/coco-stuff-164k-156/zero_shot_clip_fpn_perpixel_no_prompt.yaml
+      - configs/coco-stuff-164k-156/zero_shot_perpixel_R101c_no_prompt.yaml
  
   type: grid
