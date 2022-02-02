@@ -11,12 +11,12 @@ environment:
     - bash setup.sh
 storage:
   data:
-    storage_account_name: zeliuscus
-    container_name: aml
-    mount_dir: /zeliuscus
+    storage_account_name: itpeus4data
+    container_name: amulet
+    mount_dir: /itpeus4data
   output:
-    storage_account_name: zeliuscus
-    container_name: v-mdxu
+    storage_account_name: itpeus4data
+    container_name: v-miazhang-output
     mount_dir: /mnt/output
 
 code:
@@ -28,6 +28,7 @@ search:
       - export $$(grep -v '^#' .env | xargs)
       - set -x
       - cd code
+      - export CUDA_LAUNCH_BLOCKING=1
       - python train_net.py --resume --config-file {CONFIG} --num-gpus 8 OUTPUT_DIR ./output/zero_shot_perpixel_R101c_single_prompt_{ROUND} WANDB.NAME zero_shot_perpixel_R101c_single_prompt_60k SOLVER.MAX_ITER {MAX_ITER}
     
     name: search_{experiment_name:s}
@@ -52,7 +53,7 @@ search:
     - name: CONFIG
       spec: discrete
       values:
-      - configs/coco-stuff-164k-156/zero_shot_perpixel_R101c_single_prompt.yaml
-      # - configs/coco-stuff-164k-156/zero_shot_clip_only_perpixel.yaml
+      # - configs/coco-stuff-164k-156/zero_shot_perpixel_R101c_single_prompt.yaml
+      - configs/coco-stuff-164k-156/zero_shot_clip_only_perpixel.yaml
  
   type: grid

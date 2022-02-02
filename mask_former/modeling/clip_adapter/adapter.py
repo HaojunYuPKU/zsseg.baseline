@@ -8,9 +8,14 @@ from .text_prompt import PromptExtractor
 
 
 class ClipAdapter(nn.Module):
-    def __init__(self, clip_model_name: str, prompt_learner: PromptExtractor, frozen: bool = True):
+    def __init__(
+        self, 
+        clip_model_name: str, 
+        prompt_learner: PromptExtractor, 
+        vision_use_fpn: bool = False
+    ):
         super().__init__()
-        self.clip_model = build_clip_model(clip_model_name, frozen)
+        self.clip_model = build_clip_model(clip_model_name, vision_use_fpn=vision_use_fpn)
         self.prompt_learner = prompt_learner
         self.prompt_learner.init_buffer(self.clip_model)
         self.text_feature_buffer = {}

@@ -168,14 +168,18 @@ def crop_with_mask(
     )
 
 
-def build_clip_model(model: str, frozen: bool = True):
+def build_clip_model(
+    model: str,
+    frozen: bool = True,
+    vision_use_fpn: bool = False
+):
     rank = get_local_rank()
     if rank == 0:
         # download on rank 0 only
-        model, _ = clip.load(model, device="cpu")
+        model, _ = clip.load(model, device="cpu", vision_use_fpn=vision_use_fpn)
     synchronize()
     if rank != 0:
-        model, _ = clip.load(model, device="cpu")
+        model, _ = clip.load(model, device="cpu", vision_use_fpn=vision_use_fpn)
     synchronize()
     if frozen:
         for param in model.parameters():

@@ -12,7 +12,7 @@ pip install -e .
 cd ../../
 #data
 cd datasets
-ln -sT /zeliuscus/amldata/ade/ADEChallengeData2016 ADEChallengeData2016
-ln -sT /zeliuscus/amldata/coco coco
-ln -sT /zeliuscus/amldata/voc2012 VOC2012
+ln -sT /itpeus4data/amldata/ade/ADEChallengeData2016 ADEChallengeData2016
+ln -sT /itpeus4data/amldata/coco coco
+ln -sT /itpeus4data/amldata/voc2012 VOC2012
 cd ..
