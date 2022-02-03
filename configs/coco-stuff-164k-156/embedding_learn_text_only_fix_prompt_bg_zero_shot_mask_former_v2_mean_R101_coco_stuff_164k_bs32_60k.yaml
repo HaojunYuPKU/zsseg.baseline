@@ -1,0 +1,16 @@
+_BASE_: text_only_fix_prompt_bg_zero_shot_mask_fromer_R50_coco_stuff_164k_bs32_60k.yaml
+MODEL:
+  META_ARCHITECTURE: "ZeroShotMaskFormerV3"
+  BACKBONE:
+    NAME: "build_resnet_deeplab_backbone"
+  WEIGHTS: "detectron2://DeepLab/R-103.pkl"
+  RESNETS:
+    DEPTH: 101
+    STEM_TYPE: "deeplab"
+    STEM_OUT_CHANNELS: 128
+    STRIDE_IN_1X1: False
+    OUT_FEATURES: ["res2", "res3", "res4", "res5"]
+    # NORM: "SyncBN"
+    RES5_MULTI_GRID: [1, 2, 4]
+  SEM_SEG_HEAD:
+    NAME: "ZeroShotMaskFormerHeadV2"

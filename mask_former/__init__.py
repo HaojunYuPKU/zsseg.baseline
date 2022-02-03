@@ -10,3 +10,4 @@ from .ablation.zero_shot_per_pixel_model import ZeroShotPerPixelModel
 from .ablation.oracle_mask_former_model import OracleMaskFormer
 from .ablation.zero_shot_proposal_based_model import ZeroShotProposalBasedSegmentor
 from .ablation.clip_only_per_pixel_model import ClipOnlyPerPixelModel
+from .zero_shot_mask_former_model_v3 import ZeroShotMaskFormerV3

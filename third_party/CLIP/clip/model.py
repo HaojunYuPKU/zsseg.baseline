@@ -84,6 +84,8 @@ class AttentionPool2d(nn.Module):
         self.c_proj = nn.Linear(embed_dim, output_dim or embed_dim)
         self.num_heads = num_heads
         self.grid_size = spacial_dim
+        self.in_features = embed_dim
+        self.dense_clip = True
 
     def forward(self, x, mask=None):
         b, c, gh, gw = x.shape
@@ -118,6 +120,10 @@ class AttentionPool2d(nn.Module):
             positional_embedding = torch.cat([cls_pos, per_pos_embedding])
 
         x = x + positional_embedding[:, None, :].to(x.dtype)  # (HW+1)NC
+        if self.dense_clip:
+            x = self.v_proj(x)
+            x = self.c_proj(x)
+            return x
         x, _ = F.multi_head_attention_forward(
             query=x,
             key=x,
@@ -787,5 +793,5 @@ def build_model(state_dict: dict, vision_use_fpn: bool = False):
             del state_dict[key]
 
     convert_weights(model)
-    model.load_state_dict(state_dict, not vision_use_fpn)
+    model.load_state_dict(state_dict, False) #not vision_use_fpn)
     return model.eval()

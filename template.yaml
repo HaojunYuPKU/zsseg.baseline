@@ -28,8 +28,7 @@ search:
       - export $$(grep -v '^#' .env | xargs)
       - set -x
       - cd code
-      - export NAME=`python tools/parse_name.py {CONFIG}`
-      - python train_net.py --resume --config-file {CONFIG} --num-gpus 8 OUTPUT_DIR ./output/$${NAME}_{MAX_ITER}-{ROUND} WANDB.NAME $${NAME}_{MAX_ITER} SOLVER.MAX_ITER {MAX_ITER}
+      - python train_net.py --resume --config-file {CONFIG} --num-gpus 8 OUTPUT_DIR ./output/{NAME}_{MAX_ITER}-{ROUND} WANDB.NAME {NAME}_{MAX_ITER} SOLVER.MAX_ITER {MAX_ITER}
     
     name: search_{experiment_name:s}
     sku: G8@southcentralus
@@ -57,5 +56,8 @@ search:
       # - configs/coco-stuff-164k-156/zero_shot_clip_fpn_perpixel_learnable_prompt.yaml
       # - configs/coco-stuff-164k-156/zero_shot_perpixel_R101c_no_prompt.yaml
       # - configs/coco-stuff-164k-156/zero_shot_perpixel_R101c_learnable_prompt.yaml
- 
+    - name: NAME
+      spec: discrete
+      values:
+      - zero_shot_clip_fpn_perpixel_no_prompt
   type: grid

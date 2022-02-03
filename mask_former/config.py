@@ -4,24 +4,45 @@ from detectron2.config import CfgNode as CN
 
 
 def add_mask_former_default_config(cfg):
+    """
+    Add config for MASK_FORMER.
+    """
+    cfg.ORACLE = False
+    cfg.PSEUDO = False
+    cfg.PSEUDO_WITH_PRIOR = True
+    cfg.PSEUDO_FLAG_NAME = "trainable_flag"
+
     # data config
     # select the dataset mapper
+    cfg.DATASETS.SAMPLE_PER_CLASS = -1
     cfg.INPUT.DATASET_MAPPER_NAME = "mask_former_semantic"
+
     # Color augmentation
     cfg.INPUT.COLOR_AUG_SSD = False
+    cfg.INPUT.EXPAND_RATIO = [1.0]
+    cfg.INPUT.EXPAND_MODE = "choice"
     # We retry random cropping until no single category in semantic segmentation GT occupies more
     # than `SINGLE_CATEGORY_MAX_AREA` part of the crop.
     cfg.INPUT.CROP.SINGLE_CATEGORY_MAX_AREA = 1.0
     # Pad image and segmentation GT in dataset mapper.
     cfg.INPUT.SIZE_DIVISIBILITY = -1
+    # test
+    cfg.TEST.SLIDING_WINDOW = False
+    cfg.TEST.SLIDING_TILE_SIZE = 224
+    cfg.TEST.SLIDING_OVERLAP = 1 / 3
+    cfg.TEST.DENSE_CRF = False
+    cfg.TEST.PROPOSAL_REFINE = False
+    # for clip mask testing
+    cfg.TEST.BASE_TRELY_ON_PRED = True
 
+    # cfg.TEST.ENSEMBLE_WEIGHT = 0.9
     # solver config
     # weight decay on embedding
     cfg.SOLVER.WEIGHT_DECAY_EMBED = 0.0
     # optimizer
     cfg.SOLVER.OPTIMIZER = "ADAMW"
     cfg.SOLVER.BACKBONE_MULTIPLIER = 0.1
-
+    cfg.SOLVER.TEST_IMS_PER_BATCH = 1
     # mask_former model config
     cfg.MODEL.MASK_FORMER = CN()
 
@@ -62,6 +83,10 @@ def add_mask_former_default_config(cfg):
     cfg.MODEL.SEM_SEG_HEAD.TRANSFORMER_ENC_LAYERS = 0
     # pixel decoder
     cfg.MODEL.SEM_SEG_HEAD.PIXEL_DECODER_NAME = "BasePixelDecoder"
+    # embedding learning
+    cfg.MODEL.SEM_SEG_HEAD.EMBEDDING_DIM = 512
+    cfg.MODEL.SEM_SEG_HEAD.EMBED_HIDDEN_DIM = 1024
+    cfg.MODEL.SEM_SEG_HEAD.EMBED_LAYERS = 2
 
     # swin transformer backbone
     cfg.MODEL.SWIN = CN()
@@ -80,6 +105,62 @@ def add_mask_former_default_config(cfg):
     cfg.MODEL.SWIN.APE = False
     cfg.MODEL.SWIN.PATCH_NORM = True
     cfg.MODEL.SWIN.OUT_FEATURES = ["res2", "res3", "res4", "res5"]
+    cfg.MODEL.SWIN.NORM_INDICES = (0, 1, 2, 3)
+    cfg.MODEL.SWIN.PROJECTION = False
+    cfg.MODEL.SWIN.PROJECT_DIM = 256
+    #
+    cfg.MODEL.MASK_FORMER.EMBED_WEIGHT = 1.0
+    cfg.MODEL.SEM_SEG_HEAD.EMBED_HEAD = CN()
+    cfg.MODEL.SEM_SEG_HEAD.EMBED_HEAD.NUM_LAYERS = 3
+    cfg.MODEL.SEM_SEG_HEAD.EMBED_HEAD.TOTAL_SAMPLE_NUM = 512
+    cfg.MODEL.SEM_SEG_HEAD.EMBED_HEAD.SAMPLE_METHOD = "uniform"
+    cfg.MODEL.SEM_SEG_HEAD.EMBED_HEAD.TEMPERATURE = 0.05
+    cfg.MODEL.SEM_SEG_HEAD.EMBED_HEAD.PER_IMAGE = False
+    # zero shot
+    cfg.MODEL.ZERO_SHOT_MASK_FORMER = CN()
+    cfg.MODEL.ZERO_SHOT_MASK_FORMER.FREEZE_PRETRAINED = False
+    cfg.MODEL.ZERO_SHOT_MASK_FORMER.WITH_DISTILL_CRITERION = False
+    cfg.MODEL.ZERO_SHOT_MASK_FORMER.DISTL_WEIGHT = 1.0
+    cfg.MODEL.ZERO_SHOT_MASK_FORMER.CALIBRATED = False
+    cfg.MODEL.ZERO_SHOT_MASK_FORMER.CALIBRATED_WEIGHT = 1.0
+    cfg.MODEL.ZERO_SHOT_MASK_FORMER.CALIBRATED_BIAS = -0.1
+    cfg.MODEL.ZERO_SHOT_MASK_FORMER.CALIBRATED_BEFORE_AGG = True
+    cfg.MODEL.ZERO_SHOT_MASK_FORMER.CLIP_PRETRAINED = ""
+    # proposal
+    cfg.MODEL.OFFLINE_PROPOSAL = CN()
+    cfg.MODEL.OFFLINE_PROPOSAL.PATH = ""
+    # clip model
+    cfg.MODEL.CLIP = CN()
+    cfg.MODEL.CLIP.MODEL_NAME = "ViT-B/16"
+    cfg.MODEL.CLIP.FIX_SIZE = True
+    cfg.MODEL.CLIP.TEMPERATURE = 100.0
+    cfg.MODEL.CLIP.WITH_BACKGROUND = False
+    cfg.MODEL.CLIP.INPUT_MASK_FILL = "mean"
+    cfg.MODEL.CLIP.INPUT_CROP_EXPAND_RATIO = (1.0,)
+    cfg.MODEL.CLIP.PROMPT_NUM = [2]
+    cfg.MODEL.CLIP.PROMPT_Sample_MODE = "range"
+    cfg.MODEL.CLIP.INPUT_MASK_THRSHOLD = 0.6
+    cfg.MODEL.CLIP.PROMPT_FREEZE = False
+    # COOP
+    cfg.MODEL.COOP = CN()
+    cfg.MODEL.COOP.N_CTX = 16
+    cfg.MODEL.COOP.CTX_INIT = "a sculpture of a {}."
+    cfg.MODEL.COOP.CSC = False
+    cfg.MODEL.COOP.CLASS_TOKEN_POSITION = "end"
+    cfg.MODEL.COOP.FIX_TEXTPROMPT = False
+    cfg.MODEL.COOP.N_PREFIX = 16
+    cfg.MODEL.COOP.N_SUFFIX = 0
+    cfg.MODEL.COOP.IMAGE_PROMPT_METHOD = "rgb"
+    cfg.MODEL.COOP.MODEL_NAME = "ViT-B/16"
+    cfg.MODEL.COOP.INPUT_MASK_FILL="mean"
+    # V3
+    cfg.MODEL.V3_TEST = CN()
+    cfg.MODEL.V3_TEST.WITH_DENSE_CRF_POST_PROCESS = False
+    cfg.MODEL.V3_TEST.DENSE_CRF_FEAT_STD = 0.1
+    # WANDB
+    cfg.WANDB = CN()
+    cfg.WANDB.PROJECT = "zero_shot_seg"
+    cfg.WANDB.NAME = None
 
 
 def add_our_config(cfg):
@@ -133,11 +214,6 @@ def add_our_config(cfg):
     cfg.MODEL.CLIP_ADAPTER.REGION_CLIP_ADAPTER.PROMPT_DIM = 512
     cfg.MODEL.CLIP_ADAPTER.REGION_CLIP_ADAPTER.PROMPT_SHAPE = (16, 0)
     cfg.MODEL.CLIP_ADAPTER.REGION_CLIP_ADAPTER.PROMPT_CHECKPOINT = ""
-
-    # wandb
-    cfg.WANDB = CN()
-    cfg.WANDB.PROJECT = "zero_shot_seg"
-    cfg.WANDB.NAME = None
 
 
 def add_mask_former_config(cfg):

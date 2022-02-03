@@ -9,3 +9,4 @@ from .heads.per_pixel_baseline import (
     ZeroPerPixelBaselineHead,
 )
 from .heads.pixel_decoder import BasePixelDecoder
+from .heads.zero_shot_mask_former_head_v2 import ZeroShotMaskFormerHeadV2
