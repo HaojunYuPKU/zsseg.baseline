@@ -182,7 +182,6 @@ class ModifiedResNet(nn.Module):
 
         # fpn layers
         self.fpn = FPN(
-            width=width,
             in_features=["p2", "p3", "p4", "p5"],
             out_channels=512 # the same dimension with text features
         ) if self.use_fpn else None
@@ -190,7 +189,7 @@ class ModifiedResNet(nn.Module):
         embed_dim = width * 32  # the ResNet feature dimension
         self.attnpool = AttentionPool2d(
             input_resolution // 32, embed_dim, heads, output_dim
-        ) if not self.use_fpn else None
+        ) 
 
     def _make_layer(self, planes, blocks, stride=1):
         layers = [Bottleneck(self._inplanes, planes, stride)]
@@ -222,23 +221,24 @@ class ModifiedResNet(nn.Module):
         x = self.layer3(x)  # 1/16,1/16, 1024
         outputs["p4"] = x
         x = self.layer4(x)  # 1/32,1/32, 2048
-        outputs["p5"] = x
-        
         b, c, gh, gw = x.shape
-        if not self.use_fpn:
-            x = self.attnpool(x, mask) # (HW+1)NC
-            if return_cls:
-                return x[0]
-            return x[1:].permute(1, 0, 2).reshape(b, gh, gw, self.output_dim)
-        else:
-            assert not return_cls
+        x = self.attnpool(x, mask) # (HW+1)NC
+        if return_cls:
+            return x[0]
+        x = x[1:].permute(1, 2, 0).reshape(b, self.output_dim, gh, gw)
+        outputs["p5"] = x
+
+        if self.use_fpn:
             x = self.fpn(outputs)  # 1/4,1/4, 512
-            return x.permute(0, 2, 3, 1)
+        else:
+            x = outputs["p5"]
+
+        return x.permute(0, 2, 3, 1)
 
 
 class FPN(nn.Module):
     def __init__(
-        self, width, in_features, out_channels, norm="", fuse_type="sum"
+        self, in_features, out_channels, norm=""
     ):
         """
         Args:
@@ -252,25 +252,20 @@ class FPN(nn.Module):
                 of these may be used; order must be from high to low resolution.
             out_channels (int): number of channels in the output feature maps.
             norm (str): the normalization to use.
-            fuse_type (str): types for fusing the top down features and the lateral
-                ones. It can be "sum" (default), which sums up element-wise; or "avg",
-                which takes the element-wise mean of the two.
         """
         super(FPN, self).__init__()
 
-        strides = {"p2": 4, "p3": 8, "p4": 16, "p5": 32}
-        in_channels_per_feature = [width * strides[f] for f in in_features]
+        self.strides = {"p2": 4, "p3": 8, "p4": 16, "p5": 32}
+        in_channels_per_feature = {"p2": 256, "p3": 512, "p4": 1024, "p5": 512}
 
         lateral_convs = []
         use_bias = norm == ""
-        for in_channels in in_channels_per_feature:
+        for k, in_channels in in_channels_per_feature.items():
             lateral_norm = get_norm(norm, out_channels)
             lateral_conv = Conv2d(
                 in_channels, out_channels, kernel_size=1, bias=use_bias, norm=lateral_norm
             )
             weight_init.c2_xavier_fill(lateral_conv)
-            # stage = int(math.log2(strides[in_features[idx]]))
-            # self.add_module("fpn_lateral{}".format(stage), lateral_conv)
             lateral_convs.append(lateral_conv)
 
         output_norm = get_norm(norm, out_channels)
@@ -286,13 +281,10 @@ class FPN(nn.Module):
         weight_init.c2_xavier_fill(self.output_conv)
         # Place convs into top-down order (from low to high resolution)
         # to make the top-down computation in forward clearer.
-        self.lateral_convs = nn.ModuleList(lateral_convs[::-1])
+        self.lateral_convs = nn.ModuleList(lateral_convs)
         self.in_features = tuple(in_features)
-        self.out_features = self.in_features
-        assert fuse_type in {"avg", "sum"}
-        self._fuse_type = fuse_type
 
-    def forward(self, outputs):
+    def forward(self, features):
         """
         Args:
             input (dict[str->Tensor]): mapping feature map name (e.g., "res5") to
@@ -305,21 +297,21 @@ class FPN(nn.Module):
                 paper convention: "p<stage>", where stage has stride = 2 ** stage e.g.,
                 ["p2", "p3", ..., "p6"].
         """
-        bottom_up_features = outputs
-        prev_features = self.lateral_convs[0](bottom_up_features[self.in_features[-1]])
-
+        out_feat = features[self.in_features[0]]
+        out_feat = self.lateral_convs[0](out_feat)
         # Reverse feature maps into top-down order (from low to high resolution)
         for idx, lateral_conv in enumerate(self.lateral_convs):
             if idx > 0:
-                features = self.in_features[-idx - 1]
-                features = bottom_up_features[features]
-                top_down_features = F.interpolate(prev_features, scale_factor=2.0, mode="nearest")
-                lateral_features = lateral_conv(features)
-                prev_features = lateral_features + top_down_features
-                if self._fuse_type == "avg":
-                    prev_features /= 2
-
-        return self.output_conv(prev_features)
+                feat_name = self.in_features[idx]
+                feat = features[feat_name]
+                feat = lateral_conv(feat)
+                scale_factor = self.strides[feat_name] / self.strides[self.in_features[0]]
+                feat = F.interpolate(
+                    feat, scale_factor=scale_factor, mode="bilinear", align_corners=False
+                )
+                out_feat = out_feat + feat
+        del features
+        return self.output_conv(out_feat)
 
 
 class LayerNorm(nn.LayerNorm):
