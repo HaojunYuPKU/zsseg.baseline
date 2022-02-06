@@ -38,13 +38,12 @@ class ZeroShotMaskFormerHeadV2(nn.Module):
             logger = logging.getLogger(__name__)
             for k in list(state_dict.keys()):
                 newk = k
-                if "sem_seg_head" in k and not k.startswith(prefix + "predictor"):
-                    newk = k.replace(prefix, prefix + "pixel_decoder.")
-                    # logger.debug(f"{k} ==> {newk}")
-                if newk != k:
-                    state_dict[newk] = state_dict[k]
-                    del state_dict[k]
-                    scratch = False
+                # if "sem_seg_head" in k and not k.startswith(prefix + "predictor"):
+                #     newk = k.replace(prefix, prefix + "pixel_decoder.")
+                # if newk != k:
+                #     state_dict[newk] = state_dict[k]
+                #     del state_dict[k]
+                #     scratch = False
 
             if not scratch:
                 logger.warning(

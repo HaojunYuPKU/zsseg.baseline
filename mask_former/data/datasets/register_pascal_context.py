@@ -549,8 +549,8 @@ def register_pascal_context_59(root):
     root = os.path.join(root, "pascal_context")
     meta = _get_pascal_context_stuff_meta(PASCAL_CONTEXT_59_CATEGORIES)
     for name, image_dirname, sem_seg_dirname in [
-        ("train", "train/image", "train/label"),
-        ("val", "val/image", "val/label"),
+        ("train", "train/image", "59_context_labels"),
+        ("val", "val/image", "59_context_labels"),
     ]:
         image_dir = os.path.join(root, image_dirname)
         gt_dir = os.path.join(root, sem_seg_dirname)
