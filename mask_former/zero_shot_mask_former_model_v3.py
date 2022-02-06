@@ -24,6 +24,7 @@ from .modeling.criterion import SetCriterion
 from .modeling.matcher import HungarianMatcher
 from .modeling.embedding_criterion import EmbeddingCriterion
 from .utils.post_process_utils import dense_crf_post_process
+from .utils.graph_cut import graph_cut_post_process
 
 
 @META_ARCH_REGISTRY.register()
@@ -52,8 +53,7 @@ class ZeroShotMaskFormerV3(MaskFormer):
         clip_ensemble_weight: float,
         pixel_mean: Tuple[float],
         pixel_std: Tuple[float],
-        with_dense_crf_post_process,
-        dense_crf_feat_std,
+        with_graph_cut_post_process,
     ):
         """
         Args:
@@ -99,10 +99,8 @@ class ZeroShotMaskFormerV3(MaskFormer):
 
         self.embed_criterion = embed_criterion
 
-        self.dense_crf_post_process = with_dense_crf_post_process
-        self.dense_crf_feat_std = dense_crf_feat_std
-
-        self.debug = True
+        self.graph_cut_post_process = with_graph_cut_post_process
+        self.debug = False
 
     @classmethod
     def from_config(cls, cfg):
@@ -205,8 +203,7 @@ class ZeroShotMaskFormerV3(MaskFormer):
             "region_clip_adapter": region_clip_adapter,
             "clip_ensemble": cfg.MODEL.CLIP_ADAPTER.CLIP_ENSEMBLE,
             "clip_ensemble_weight": cfg.MODEL.CLIP_ADAPTER.CLIP_ENSEMBLE_WEIGHT,
-            "with_dense_crf_post_process": cfg.MODEL.V3_TEST.WITH_DENSE_CRF_POST_PROCESS,
-            "dense_crf_feat_std": cfg.MODEL.V3_TEST.DENSE_CRF_FEAT_STD,
+            "with_graph_cut_post_process": cfg.MODEL.V3_TEST.WITH_GRAPH_CUT_POST_PROCESS,
         }
 
     def forward(self, batched_inputs):
@@ -314,6 +311,32 @@ class ZeroShotMaskFormerV3(MaskFormer):
                 r = self.semantic_inference(
                     mask_cls_result, mask_pred_result, image, class_names, dataset_name
                 )
+                # graph cut
+                if self.graph_cut_post_process:
+                    feat_h, feat_w = pix_embedding[i].shape[-2:]
+                    emb = sem_seg_postprocess(
+                        pix_embedding[i], image_size, height, width
+                    )
+                    rh, rw = r.shape[-2:]
+                    r = F.interpolate(
+                        r[None], size=(feat_h, feat_w), mode="bilinear", align_corners=False,
+                    )[0]
+                    emb = F.interpolate(
+                        emb[None], size=(feat_h, feat_w), mode="bilinear", align_corners=False,
+                    )[0]
+                    r = graph_cut_post_process(
+                        logits=r.cpu(), 
+                        pix_embedding=emb.cpu().permute(1, 2, 0),
+                        logits_temperature=0.1,
+                        pix_temperature=0.01,
+                    )
+                    r = F.one_hot(
+                        torch.from_numpy(r).long(), num_classes=len(class_names)
+                    ).permute(2, 0, 1).float()
+                    r = F.interpolate(
+                        r[None], size=(rh, rw), mode="nearest"
+                    )[0]
+                
                 height = input_per_image.get("height", image_size[0])
                 width = input_per_image.get("width", image_size[1])
                 r = sem_seg_postprocess(r, image_size, height, width)
@@ -338,18 +361,6 @@ class ZeroShotMaskFormerV3(MaskFormer):
                             os.path.basename(input_per_image["file_name"]).split(".")[0]
                             + ".pth",
                         ),
-                    )
-
-                if self.dense_crf_post_process:
-                    log_first_n(logging.INFO, "Use densecrf for postprocessing.", n=10)
-                    r = dense_crf_post_process(
-                        r,
-                        sem_seg_postprocess(pix_embedding[i], image_size, height, width)
-                        .cpu()
-                        .permute(1, 2, 0)
-                        .numpy(),
-                        len(class_names),
-                        bi_rgb_std=self.dense_crf_feat_std,
                     )
 
                 processed_results.append({"sem_seg": r})

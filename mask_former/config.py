@@ -155,8 +155,7 @@ def add_mask_former_default_config(cfg):
     cfg.MODEL.COOP.INPUT_MASK_FILL="mean"
     # V3
     cfg.MODEL.V3_TEST = CN()
-    cfg.MODEL.V3_TEST.WITH_DENSE_CRF_POST_PROCESS = False
-    cfg.MODEL.V3_TEST.DENSE_CRF_FEAT_STD = 0.1
+    cfg.MODEL.V3_TEST.WITH_GRAPH_CUT_POST_PROCESS = False
     # WANDB
     cfg.WANDB = CN()
     cfg.WANDB.PROJECT = "zero_shot_seg"

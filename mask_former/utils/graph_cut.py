@@ -115,8 +115,8 @@ def graph_cut_post_process(
     edge_weight = (cos_sim + 1) * unary_cost.std() #* 10
     # edge_weight = torch.exp(cos_sim / pix_temperature).detach().cpu().numpy()
     
-    print(unary_cost.mean(), unary_cost.std())
-    print(edge_weight.mean(), edge_weight.std())
+    # print(unary_cost.mean(), unary_cost.std())
+    # print(edge_weight.mean(), edge_weight.std())
 
     edges = np.concatenate([edges, edge_weight.reshape(-1, 1)], axis=1)
 
